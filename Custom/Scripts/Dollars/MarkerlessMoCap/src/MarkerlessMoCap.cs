@@ -33,9 +33,42 @@ namespace Dollars
         private UIDynamicToggle faceCapButton;
         public JSONStorableBool StorableIsFaceCapturing;
 
+        private List<UIDynamicToggle> trackingToggles;
+
+        private JSONStorableBool head;
+        private JSONStorableBool neck;
+        private JSONStorableBool chest;
+        private JSONStorableBool abdomen2;
+        private JSONStorableBool hip;
+
+        private JSONStorableBool lShoulder;
+        private JSONStorableBool lArm;
+        private JSONStorableBool lElbow;
+        private JSONStorableBool lHand;
+        private JSONStorableBool lFingers;
+
+        private JSONStorableBool lThigh;
+        private JSONStorableBool lKnee;
+        private JSONStorableBool lFoot;
+        private JSONStorableBool lToe;
+
+        private JSONStorableBool rShoulder;
+        private JSONStorableBool rArm;
+        private JSONStorableBool rElbow;
+        private JSONStorableBool rHand;
+        private JSONStorableBool rFingers;
+
+        private JSONStorableBool rThigh;
+        private JSONStorableBool rKnee;
+        private JSONStorableBool rFoot;
+        private JSONStorableBool rToe;
+        private UIDynamic spacer;
+
         private Dollars.OSC osc;
         private bool connected = false;
         private bool received = false;
+
+        private bool[] tracking;
 
         private FreeControllerV3[] jointControls;
 
@@ -203,6 +236,14 @@ namespace Dollars
             {
                 RemoveToggle(faceCapButton);
             }
+            foreach (var toggle in trackingToggles)
+            {
+                RemoveToggle(toggle);
+            }
+            if (spacer != null)
+            {
+                RemoveSpacer(spacer);
+            }
         }
 
         private void OnSliderChanged()
@@ -223,6 +264,72 @@ namespace Dollars
             }
 
             return storableFloat;
+        }
+
+        private void setTracking(bool val)
+        {
+            tracking[0] = hip.val;
+            tracking[1] = lThigh.val;
+            tracking[2] = rThigh.val;
+            tracking[3] = lKnee.val;
+            tracking[4] = rKnee.val;
+            tracking[5] = lFoot.val;
+            tracking[6] = rFoot.val;
+            tracking[7] = lToe.val;
+            tracking[8] = rToe.val;
+            tracking[9] = abdomen2.val;
+            tracking[10] = chest.val;
+            tracking[11] = neck.val;
+            tracking[12] = head.val;
+            tracking[13] = lShoulder.val;
+            tracking[14] = rShoulder.val;
+            tracking[15] = lArm.val;
+            tracking[16] = rArm.val;
+            tracking[17] = lElbow.val;
+            tracking[18] = rElbow.val;
+            tracking[19] = lHand.val;
+            tracking[20] = rHand.val;
+            tracking[21] = lFingers.val;
+            tracking[22] = rFingers.val;
+            setJointTracked();
+        }
+
+        private void setJointTracked()
+        {
+            if (tracking[0])
+            {
+                jointControls[0].currentRotationState = FreeControllerV3.RotationState.Lock;
+                jointControls[0].currentPositionState = FreeControllerV3.PositionState.Lock;
+            }
+            else
+            {
+                jointControls[0].currentRotationState = FreeControllerV3.RotationState.On;
+                jointControls[0].currentPositionState = FreeControllerV3.PositionState.On;
+            }
+
+            for (int i = 1; i < 21; i++)
+            {
+                if (tracking[i])
+                {
+                    jointControls[i].currentRotationState = FreeControllerV3.RotationState.Hold;
+                    jointControls[i].currentPositionState = FreeControllerV3.PositionState.Off;
+                }
+                else
+                {
+                    jointControls[i].currentRotationState = FreeControllerV3.RotationState.On;
+                    jointControls[i].currentPositionState = FreeControllerV3.PositionState.On;
+                }
+            }
+        }
+
+        private JSONStorableBool CreateBoolCheckbox(string name, bool defaultValue, bool rightSide)
+        {
+            JSONStorableBool storable = new JSONStorableBool(name, defaultValue, new JSONStorableBool.SetBoolCallback(setTracking));
+            storable.storeType = JSONStorableParam.StoreType.Full;
+            RegisterBool(storable);
+            var toggle = CreateToggle(storable, rightSide);
+            trackingToggles.Add(toggle);
+            return storable;
         }
 
         private void RenderUI()
@@ -277,6 +384,36 @@ namespace Dollars
             faceCapButton = CreateToggle(StorableIsFaceCapturing, true);
             faceCapButton.height = 75;
 
+            head = CreateBoolCheckbox("Head", tracking[12], false);
+            neck = CreateBoolCheckbox("Neck", tracking[11], true);
+            chest = CreateBoolCheckbox("Chest", tracking[10], false);
+            abdomen2 = CreateBoolCheckbox("Abdomen2", tracking[9], true);
+            hip = CreateBoolCheckbox("Hip", tracking[0], false);
+
+            lShoulder = CreateBoolCheckbox("Left Shoulder", tracking[13], false);
+            lArm = CreateBoolCheckbox("Left Arm", tracking[15], false);
+            lElbow = CreateBoolCheckbox("Left Elbow", tracking[17], false);
+            lHand = CreateBoolCheckbox("Left Hand", tracking[19], false);
+            lFingers = CreateBoolCheckbox("Left Fingers", tracking[21], false);
+
+            lThigh = CreateBoolCheckbox("Left Thigh", tracking[1], false);
+            lKnee = CreateBoolCheckbox("Left Knee", tracking[3], false);
+            lFoot = CreateBoolCheckbox("Left Foot", tracking[5], false);
+            lToe = CreateBoolCheckbox("Left Toe", tracking[7], false);
+
+            spacer = CreateSpacer(true);
+            spacer.height = 50f;
+
+            rShoulder = CreateBoolCheckbox("Right Shoulder", tracking[14], true);
+            rArm = CreateBoolCheckbox("Right Arm", tracking[16], true);
+            rElbow = CreateBoolCheckbox("Right Elbow", tracking[18], true);
+            rHand = CreateBoolCheckbox("Right Hand", tracking[20], true);
+            rFingers = CreateBoolCheckbox("Right Fingers", tracking[22], true);
+
+            rThigh = CreateBoolCheckbox("Right Thigh", tracking[2], true);
+            rKnee = CreateBoolCheckbox("Right Knee", tracking[4], true);
+            rFoot = CreateBoolCheckbox("Right Foot", tracking[6], true);
+            rToe = CreateBoolCheckbox("Right Toe", tracking[8], true);
         }
 
         private static JSONStorable personEyelids;
@@ -301,8 +438,13 @@ namespace Dollars
             geometry = containingAtom.GetStorableByID("geometry");
             character = geometry as DAZCharacterSelector;
             morphControl = character.morphsControlUI;
+            trackingToggles = new List<UIDynamicToggle>();
+            tracking = new bool[23];
+            for (int i = 0; i < tracking.Length; i++)
+            {
+                tracking[i] = true;
+            }
             RenderUI();
-
             try
             {
                 if (containingAtom.type != "Person")
@@ -340,36 +482,50 @@ namespace Dollars
         void Update()
         {
             osc.Update();
-            morphControl.GetMorphByDisplayName("Left Thumb Bend").morphValue = fingers[0];
-            morphControl.GetMorphByDisplayName("Left Index Finger Bend").morphValue = fingers[1];
-            morphControl.GetMorphByDisplayName("Left Mid Finger Bend").morphValue = fingers[2];
-            morphControl.GetMorphByDisplayName("Left Ring Finger Bend").morphValue = fingers[3];
-            morphControl.GetMorphByDisplayName("Left Pinky Finger Bend").morphValue = fingers[4];
-            morphControl.GetMorphByDisplayName("Left Fingers In-Out").morphValue = fingers[5];
-            morphControl.GetMorphByDisplayName("Right Thumb Bend").morphValue = fingers[6];
-            morphControl.GetMorphByDisplayName("Right Index Finger Bend").morphValue = fingers[7];
-            morphControl.GetMorphByDisplayName("Right Mid Finger Bend").morphValue = fingers[8];
-            morphControl.GetMorphByDisplayName("Right Ring Finger Bend").morphValue = fingers[9];
-            morphControl.GetMorphByDisplayName("Right Pinky Finger Bend").morphValue = fingers[10];
-            morphControl.GetMorphByDisplayName("Right Fingers In-Out").morphValue = fingers[11];
+
+            if (tracking[21])
+            {
+                morphControl.GetMorphByDisplayName("Left Thumb Bend").morphValue = fingers[0];
+                morphControl.GetMorphByDisplayName("Left Index Finger Bend").morphValue = fingers[1];
+                morphControl.GetMorphByDisplayName("Left Mid Finger Bend").morphValue = fingers[2];
+                morphControl.GetMorphByDisplayName("Left Ring Finger Bend").morphValue = fingers[3];
+                morphControl.GetMorphByDisplayName("Left Pinky Finger Bend").morphValue = fingers[4];
+                morphControl.GetMorphByDisplayName("Left Fingers In-Out").morphValue = fingers[5];
+            }
+            if (tracking[22])
+            {
+                morphControl.GetMorphByDisplayName("Right Thumb Bend").morphValue = fingers[6];
+                morphControl.GetMorphByDisplayName("Right Index Finger Bend").morphValue = fingers[7];
+                morphControl.GetMorphByDisplayName("Right Mid Finger Bend").morphValue = fingers[8];
+                morphControl.GetMorphByDisplayName("Right Ring Finger Bend").morphValue = fingers[9];
+                morphControl.GetMorphByDisplayName("Right Pinky Finger Bend").morphValue = fingers[10];
+                morphControl.GetMorphByDisplayName("Right Fingers In-Out").morphValue = fingers[11];
+            }
 
             if (received)
             {
-                pos = selfInitRotation * ((poss[0] - srcInitHipPos) * scale) + initHipPos;
-                jointControls[0].control.position = pos;
+                if (tracking[0])
+                {
+                    pos = selfInitRotation * ((poss[0] - srcInitHipPos) * scale) + initHipPos;
+                    jointControls[0].control.position = pos;
+                }
 
                 for (int i = 0; i < 21; i++)
                 {
-                    rot = srcJointsInitRotation[i];
-                    rot *= rots[i];
-                    boneRotFilter[i] = Quaternion.Slerp(boneRotFilter[i], rot, 1.0f - BoneFilter);
-                    jointControls[i].control.rotation = boneRotFilter[i];
+                    if (tracking[i])
+                    {
+                        rot = srcJointsInitRotation[i];
+                        rot *= rots[i];
+                        boneRotFilter[i] = Quaternion.Slerp(boneRotFilter[i], rot, 1.0f - BoneFilter);
+                        jointControls[i].control.rotation = boneRotFilter[i];
+                    }
                 }
                 received = false;
             }
 
             if (FaceCapturing)
             {
+
                 for (int i = 0; i < arkitids.Count; i++)
                 {
                     CurrentBSValues[i] = (CurrentBSValues[i] * BoneFilter) + bsvalues[i] * (1.0f - BoneFilter);
@@ -393,14 +549,7 @@ namespace Dollars
 
         private void Calibrate()
         {
-            jointControls[0].currentRotationState = FreeControllerV3.RotationState.Lock;
-            jointControls[0].currentPositionState = FreeControllerV3.PositionState.Lock;
-
-            for (int i = 1; i < 21; i++)
-            {
-                jointControls[i].currentRotationState = FreeControllerV3.RotationState.Lock;
-                jointControls[i].currentPositionState = FreeControllerV3.PositionState.Off;
-            }
+            setJointTracked();
 
             initHipPos = jointControls[0].control.position;
             for (int i = 0; i < 21; i++)
